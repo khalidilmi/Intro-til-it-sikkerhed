@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+THRESHOLD=80
+LOGDIR="$HOME/portfolio-logs"
+mkdir -p "$LOGDIR"
+LOGFILE="$LOGDIR/systemcheck_$(date +%F_%H-%M-%S).log"
+
+log() { echo -e "$1" | tee -a "$LOGFILE"; }
+
+log "=== Kali/Linux Systemcheck $(date) ==="
+log "Threshold: ${THRESHOLD}%"
+log "Logfile: $LOGFILE"
+
+log "\n--- Disk usage (df -h) ---"
+df -h | tee -a "$LOGFILE"
+
+log "\n--- Disk warnings (>= ${THRESHOLD}%) ---"
+while read -r fs size used avail usep mount; do
+  usepct="${usep%\%}"
+  if [[ "$usepct" =~ ^[0-9]+$ ]] && (( usepct >= THRESHOLD )); then
+    log "WARNING: $mount is ${usepct}% used (FS: $fs, Used: $used / $size)"
+  fi
+done < <(df -P -h -x tmpfs -x devtmpfs -x overlay | awk 'NR>1 {print $1, $2, $3, $4, $5, $6}')
+
+log "\n--- Memory (free -h) ---"
+free -h | tee -a "$LOGFILE"
+
+log "\n--- Uptime ---"
+uptime | tee -a "$LOGFILE"
+
+log "\n--- Listening ports (ss) ---"
+ss -lntup | tee -a "$LOGFILE" || log "ss failed (try sudo)."
+
+log "\nDone."
