@@ -1,0 +1,125 @@
+
+param(
+  [int]$HoursBack = 48,
+  [int]$TopN = 20
+)
+
+$ErrorActionPreference = "SilentlyContinue"
+$LogDir = Join-Path $PSScriptRoot "logs"
+New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
+$LogFile = Join-Path $LogDir ("win_audit_{0}.log" -f (Get-Date -Format "yyyy-MM-dd_HH-mm-ss"))
+
+function Log($msg) {
+  $line = "{0} {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $msg
+  $line | Tee-Object -FilePath $LogFile -Append
+}
+
+Log "=== Windows Defensive Audit ==="
+Log "Logfile: $LogFile"
+Log "HoursBack: $HoursBack"
+
+# 1) Failed logons (Event ID 4625) + Successful logons (4624)
+Log "`n--- Security Events (last $HoursBack hours) ---"
+$start = (Get-Date).AddHours(-$HoursBack)
+
+try {
+  $failed = Get-WinEvent -FilterHashtable @{ LogName="Security"; Id=4625; StartTime=$start } -MaxEvents 50
+  Log "Failed logons (4625): $($failed.Count)"
+  $failed | Select-Object -First 10 TimeCreated, Id, Message | Format-List | Out-String | Tee-Object -FilePath $LogFile -Append | Out-Null
+} catch {
+  Log "Could not read Security log (try running PowerShell as Administrator)."
+}
+
+try {
+  $success = Get-WinEvent -FilterHashtable @{ LogName="Security"; Id=4624; StartTime=$start } -MaxEvents 20
+  Log "Successful logons (4624): $($success.Count)"
+  $success | Select-Object -First 5 TimeCreated, Id, Message | Format-List | Out-String | Tee-Object -FilePath $LogFile -Append | Out-Null
+} catch {
+  Log "Could not read successful logons (try Admin)."
+}
+
+# 2) Listening ports
+Log "`n--- Listening TCP Ports ---"
+try {
+  Get-NetTCPConnection -State Listen |
+    Sort-Object LocalPort |
+    Select-Object -First 80 LocalAddress, LocalPort, OwningProcess |
+    Format-Table -AutoSize | Out-String |
+    Tee-Object -FilePath $LogFile -Append | Out-Null
+} catch {
+  Log "Get-NetTCPConnection not available / failed."
+}
+
+# Map OwningProcess -> process name (top)
+Log "`n--- Top processes by CPU (snapshot) ---"
+Get-Process |
+  Sort-Object CPU -Descending |
+  Select-Object -First $TopN Name, Id, CPU, StartTime |
+  Format-Table -AutoSize | Out-String |
+  Tee-Object -FilePath $LogFile -Append | Out-Null
+
+# 3) Scheduled Tasks (non-Microsoft-ish quick view)
+Log "`n--- Scheduled Tasks (quick scan) ---"
+try {
+  $tasks = Get-ScheduledTask
+  Log "Total scheduled tasks: $($tasks.Count)"
+  $tasks |
+    Where-Object { $_.TaskPath -notlike "\Microsoft\*" } |
+    Select-Object -First 40 TaskName, TaskPath, State |
+    Format-Table -AutoSize | Out-String |
+    Tee-Object -FilePath $LogFile -Append | Out-Null
+} catch {
+  Log "Scheduled task scan failed."
+}
+
+# 4) Startup entries (Run keys + Startup folders)
+Log "`n--- Startup entries (Run keys) ---"
+$runKeys = @(
+  "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run",
+  "HKLM:\Software\Microsoft\Windows\CurrentVersion\Run"
+)
+foreach ($k in $runKeys) {
+  Log "Key: $k"
+  try {
+    Get-ItemProperty $k | Select-Object * -ExcludeProperty PS* | Format-List | Out-String |
+      Tee-Object -FilePath $LogFile -Append | Out-Null
+  } catch {
+    Log "  (no access / missing)"
+  }
+}
+
+Log "`n--- Startup folders ---"
+$startupFolders = @(
+  "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup",
+  "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Startup"
+)
+foreach ($f in $startupFolders) {
+  Log "Folder: $f"
+  if (Test-Path $f) {
+    Get-ChildItem $f | Select-Object Name, FullName, LastWriteTime | Format-Table -AutoSize | Out-String |
+      Tee-Object -FilePath $LogFile -Append | Out-Null
+  } else {
+    Log "  (missing)"
+  }
+}
+
+# 5) “Suspicious-ish” processes running from Temp/AppData
+Log "`n--- Processes running from Temp/AppData (heuristic) ---"
+try {
+  $procs = Get-CimInstance Win32_Process | Select-Object Name, ProcessId, ExecutablePath, CommandLine
+  $sus = $procs | Where-Object {
+    $_.ExecutablePath -and ($_.ExecutablePath -match "\\AppData\\" -or $_.ExecutablePath -match "\\Temp\\")
+  } | Select-Object -First 40 Name, ProcessId, ExecutablePath
+  if ($sus) {
+    $sus | Format-Table -AutoSize | Out-String | Tee-Object -FilePath $LogFile -Append | Out-Null
+  } else {
+    Log "None found."
+  }
+} catch {
+  Log "Process path scan failed."
+}
+
+Log "`n--- Notes ---"
+Log "This report is heuristic. Updates/software can create false positives."
+Log "If you see unknown scheduled tasks, unknown startup entries, or strange listening ports: investigate."
+Log "`nDone."
