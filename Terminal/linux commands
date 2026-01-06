@@ -1,0 +1,32 @@
+Øvelser - Linux commands
+Filsystem
+1.	Find din nuværende sti og gå til din hjemmemappe.
+-	pwd && cd ~
+2.	Opret ~/kali-ovelser/fs med data og tmp som undermapper.
+-	mkdir -p ~/kali-ovelser/fs/{data,tmp}
+3.	Lav filen notes.txt i data med teksten hej kali.
+-	echo "hej kali" > ~/kali-ovelser/fs/data/notes.txt
+4.	Flyt notes.txt til tmp og omdøb den til .hidden_notes.
+-	echo "hej kali" > ~/kali-ovelser/fs/data/notes.txt
+Brugere og grupper
+1.	Vis dit brugernavn og hvilke grupper du er i.
+-	id
+2.	Slå din bruger op i /etc/passwd.
+-	grep "^$USER:" /etc/passwd
+3.	(Hvis muligt) Opret gruppen lab og tilføj din bruger til den.
+-	grep "^$USER:" /etc/passwd
+Processer
+4.	Vis et snapshot af CPU og RAM.
+-	top -b -n1 | head -n 10
+5.	Vis brug af monterede filerystemer.
+-	df -h
+6.	Mål hvor lang tid ls / tager.
+-	time ls / >/dev/null
+Netværk
+7.	Vis dine netværksinterfaces og IP-adresser.
+-	ip a
+8.	Ping kali.org med 3 pakker-
+-	ping -c 3 kali.org
+9.	Se hvilke processer der lytter på lokale porte.
+-	ping -c 3 kali.org
+
