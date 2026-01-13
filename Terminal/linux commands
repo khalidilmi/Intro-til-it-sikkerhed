@@ -1,5 +1,5 @@
-Øvelser - Linux commands
-Filsystem
+Øvelser i Linux commands
+Filsystem 1
 1.	Find din nuværende sti og gå til din hjemmemappe.
 -	pwd && cd ~
 2.	Opret ~/kali-ovelser/fs med data og tmp som undermapper.
@@ -8,25 +8,77 @@ Filsystem
 -	echo "hej kali" > ~/kali-ovelser/fs/data/notes.txt
 4.	Flyt notes.txt til tmp og omdøb den til .hidden_notes.
 -	echo "hej kali" > ~/kali-ovelser/fs/data/notes.txt
-Brugere og grupper
+Brugere og grupper 2
 1.	Vis dit brugernavn og hvilke grupper du er i.
 -	id
 2.	Slå din bruger op i /etc/passwd.
 -	grep "^$USER:" /etc/passwd
 3.	(Hvis muligt) Opret gruppen lab og tilføj din bruger til den.
 -	grep "^$USER:" /etc/passwd
-Processer
+Processer 3
 4.	Vis et snapshot af CPU og RAM.
 -	top -b -n1 | head -n 10
 5.	Vis brug af monterede filerystemer.
 -	df -h
 6.	Mål hvor lang tid ls / tager.
 -	time ls / >/dev/null
-Netværk
-7.	Vis dine netværksinterfaces og IP-adresser.
+Resurser 4
+7.	Vis et snapshot af CPU og RAM.
+-	top -b -n1 | head -n 10
+8.	Vis brug af monterede filerystemer.
+-	df -h
+9.	Mål hvor lang tid ls / tager.
+-	time ls / >/dev/null
+Netværk 5
+10.	Vis dine netværksinterfaces og IP-adresser.
 -	ip a
-8.	Ping kali.org med 3 pakker-
+11.	Ping kali.org med 3 pakker-
 -	ping -c 3 kali.org
-9.	Se hvilke processer der lytter på lokale porte.
+12.	Se hvilke processer der lytter på lokale porte.
 -	ping -c 3 kali.org
+ Systeminfo & environment 6
+13.	Vis kernel-version og maskine-arkitektur.
+-	uname -r && uname -m
+14.	Vis miljøvariablen PATH.
+-	echo "$PATH"
+Installering & opdatering 7
+15.	Opdater pakkelister.
+-	sudo apt update
+16.	Søg efter pakken jq.
+-	apt search jq | head -n 10
+17.	Installer jq, vis versionen, og fjern den igen.
+-	sudo apt install -y jq && jq --version && sudo apt remove -y jq
+Logging 8
+18.	Se de sidste 20 linjer i systemjournalen.
+-	journalctl -n 20 --no-pager
+19.	Se de sidste 20 linjer for ssh-servicen.
+-	grep -E '^(Start-Date|Commandline):' /var/log/apt/history.log | tail -n 20
+20.	Se de seneste APT-hændelser (pakkehistorik).
+-	grep -E '^(Start-Date|Commandline):' /var/log/apt/history.log | tail -n 20
+21.	Følg i realtid en logfil i ~10 sekunder og stop med Ctrl+C.
+-	grep -E '^(Start-Date|Commandline):' /var/log/apt/history.log | tail -n 20
+22.	List de 5 største filer i /var/log (overblik).
+-	grep -E '^(Start-Date|Commandline):' /var/log/apt/history.log | tail -n 20
+Processer & services 9
+
+23.	Kør ping -c 10 8.8.8.8 og stop den med Ctrl+C. 
+-	ping -c 10 8.8.8.8 (stop med Ctrl+C)
+24.	Start sleep 120 i baggrunden og stop den igen. 
+-	sleep 120 & kill %1 (eller: find PID og kill <PID>)
+25.	Tjek status for ssh-service.
+-	systemctl status ssh
+Kryptografi 10
+26.	Lav en SHA-256 hash af .hidden_notes og gem den.
+-	Lav en SHA-256 hash af .hidden_notes og gem den.
+-	Krypter .hidden_notes symmetrisk til en ny fil og dekrypter igen.
+-	(Med nøgle) Signér .hidden_notes og verificér signaturen.
+27.	Krypter .hidden_notes symmetrisk til en ny fil og dekrypter igen.
+-	Lav en SHA-256 hash af .hidden_notes og gem den.
+-	Krypter .hidden_notes symmetrisk til en ny fil og dekrypter igen.
+-	(Med nøgle) Signér .hidden_notes og verificér signaturen.
+28.	(Med nøgle) Signér .hidden_notes og verificér signaturen.
+-	Lav en SHA-256 hash af .hidden_notes og gem den.
+-	Krypter .hidden_notes symmetrisk til en ny fil og dekrypter igen.
+-	(Med nøgle) Signér .hidden_notes og verificér signaturen.
+-	
 
